@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>typo チェッカー</title>
+<style>
+body {
+	padding: 10px;
+	background-color: #F8F8F8;
+}
+header > h1 {
+	font-size: xx-large;
+	text-align: center;
+}
+
+#input-box, #output-box {
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+}
+#input-box {
+	width: 70%;
+}
+#output-box {
+	width: 30%;
+	background-color: lightgray;
+}
+#input-box, #output-box {
+	height: 20em;
+}
+</style>
+<script src="lib/levenshtein.js"></script>
+</head>
+<body>
+
+<header>
+	<h1>typo チェッカー</h1>
+</header>
+
+<div id="content">
+	
+	<div>
+		<input type="button" id="check" value="チェック">
+		<fieldset>
+			<legend>オプション</legend>
+			<label title="チェック対象とする単語の最小文字数です">
+				最小単語長
+				<input type="number" id="min-word-length" value="3" min="2">
+			</label>
+			<label title="2単語間の編集距離の最大値です">
+				最大誤字数
+				<input type="number" id="max-typo-distance" value="1" min="1">
+			</label>
+			<!-- 単語の大文字・小文字を区別する/しない -->
+			<!-- 単語のパターン(正規表現) -->
+		</fieldset>
+	</div>
+	<br>
+	<div>
+		<textarea id="input-box"></textarea><textarea id="output-box" readonly></textarea>
+	</div>
+	
+</div><!-- /content -->
+
+<script>
+var max_typo_distance = document.getElementById('max-typo-distance');
+var input_box = document.getElementById('input-box');
+var output_box = document.getElementById('output-box');
+var check_button = document.getElementById('check');
+check_button.addEventListener('click', function(e) {
+	
+	var text = input_box.value;
+	output_box.value = '';
+	
+	// 単語を抽出
+	var words = text.match(/[_a-z]\w{2,}/ig); // 3文字以上
+	/*
+	var re_word = new RegExp();
+	re_word.compile('[_a-z]\\w+', 'ig');
+	var words = [];
+	do {
+		var matches = re_word.exec(text);
+		if (matches) words.push(matches[0]);
+	} while (re_word.lastIndex);
+	*/
+	
+	// 重複削除
+	function uniq(arr) {
+		return arr.reduce(function(a, b) {
+			return a.indexOf(b) == -1 ? a.concat(b) : a;
+		}, []);
+	}
+	words = uniq(words);
+	
+	// 総当りで編集距離が近いものを探す (1以下)
+	var max_distance = max_typo_distance.value;
+	var typo_pairs = [];
+	for (var i = 0, l = words.length; i < l; ++i)
+	{
+		var word = words[i];
+		for (var j = i+1; j < l; ++j)
+		{
+			var word2 = words[j];
+			var distance = levenshtein(word, word2);
+			if (distance <= max_distance) {
+				typo_pairs.push({pair: [word, word2], distance: distance});
+			}
+		}
+	}
+	
+	// 結果を表示
+	if (typo_pairs.length == 0) {
+		output_box.value = 'none.';
+		return;
+	}
+	output_box.value = 
+		typo_pairs.map(function(e) {
+			return e.pair[0] + ', ' + e.pair[1] + ' (' + e.distance + ')';
+		})
+		.join('\n');
+	
+}, false);
+</script>
+
+<footer>
+</footer>
+
+</body>
+</html>
